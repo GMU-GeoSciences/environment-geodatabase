@@ -1,11 +1,13 @@
-# environment-geodatabase
+[![DOI](https://zenodo.org/badge/873040199.svg)](https://doi.org/10.5281/zenodo.13936374)
+
+# Environmental Geodatabase
 Repository to automate the building and sharing of GIS data using Docker, OGC standards and PostGIS tools.
 
 This git repository is aimed at deploying a spatial database and OGC API capable of storing GPS tracking data and making it available to users as:
  - Raw and aggregated GPS position data
  - Publically available raster and vector data describing the environment
  - Publically available human population data
- - Aggregations of the environment data
+ - Create aggregations of the environment data
 
 This repository creates a Postgres+PostGIS+TimescaleDB database using docker and docker compose. This database is configured using files stored in [./config](./config/README.md), scripts stored in [./build/db_init_scripts](./build/README.md), and initial data stored in [./build/db_init_data](./build/README.md).
 
@@ -63,6 +65,15 @@ High Resolution Human Population data is downloaded, processed and inserted into
 ## Generated Data
 Data is spatially aggregated over a [hexagon grid](https://www.crunchydata.com/blog/tile-serving-with-dynamic-geometry) that covers the area of interest. Features are created for the grid and allow the creation of a model that uses the environmental data to predict the likelihood of deer being present within the hexagon. These features are generated from materialized views created in the 550_raster_hex_summary.sql and 600_api_functions.sql (needs a rename) files.
 
+# Published Data
+
+Data is made available as views within the PostGISFTW (for the web) schema. Views here are automatically published as WFS layers using PG Featureserv:
+
+![image](./img/FeatServ_small.png)
+
+![image](./img/Grid_small.png)
+
+
 ## Environmental Features
 *These are still under development and need to be formalised and added to the start up scripts.*
 
@@ -82,22 +93,7 @@ Initial testing has been done using the following variables:
 
 ## Deer Probability Classification or Regression
 A window function is used over GPS data to determine the time and distance delta's from the same device id. This allows us to determine the speed between GPS messages. When this is plotted onto a map it becomes clear that deer have locations where they prefer to rest and they travel between these locations: 
-
-![Deer Speed](./img/DeerSpeedMap.png)
-
-Deer behaviour can therefore be split by movement speed: 
-  - At rest: Speed < X meters/hour
-  - Travelling: Speed > X meters/hour
-* A value for X must still be determined. *
-
-The GPS data can be aggregated over the hexagon cells to determine cells mostly used for resting, cells used for travelling and cells avoided. This is done by sampling cells that are within the MCP-100 of the individual, and those that are never rested or travelled through are considered "avoided". 
-
-* Needs to include Gridsearch optimisation and cross validation, but will need smaller grid cells for that. *
-
-First stab at confusion matrix of deer presence vs no deer presence:
-
-![ConfusionMatrix](./img/ConfusionMatrix.png)
-
+ 
 # Sub-Directory Readme's
  
  - [Build](./build/README.md)
