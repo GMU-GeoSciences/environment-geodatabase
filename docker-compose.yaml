@@ -1,0 +1,101 @@
+# version: "3.7" # 'version' is now obsolete.
+#===============================
+# What's this?
+#===============================
+# This is a docker compose file intended for use in a dev/local environment. 
+# Developers should run this in order to test things like the docker building,
+# API testing and SQL queries. Not intended for production/staging deployment.
+
+#===============================
+# Compose extension fields
+#===============================
+x-logging:
+  &default-logging
+      driver: json-file
+      options:
+        max-size: 10m
+
+#===============================
+services: 
+#===============================
+  geo_database:
+  # High availablity version of PG with
+  # Timescaledb and PostGIS extensions installed.
+  # https://github.com/timescale/timescaledb-docker-ha
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: geo_database
+    user: ${UID}:${GID}
+    shm_size: 4g
+    command: postgres -c shared_preload_libraries=timescaledb
+    restart: unless-stopped
+    networks:
+      - back_end
+    ports:
+      - ${DB_EXT_PORT}:5432
+    logging: *default-logging
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - '[ -f /home/postgres/pgdata/data/ready ]'
+        - pg_isready --username=${POSTGRES_USER} --dbname=${DB_NAME}
+      start_period: 10m # needs a long start period when downloading shapes during initialization
+      interval: 1m
+      timeout: 5s
+      retries: 5
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_UID=${UID}
+      - POSTGRES_GID=${GID}
+      - FETCH_GEOM=${FETCH_GEOM}
+    volumes: 
+      - ${DB_DATA_VOLUME}:/home/postgres/pgdata/data
+      - ${DB_GEOM_VOLUME}:/tmp/shapes/:rw 
+
+  
+  featserv:
+  # This is a template for a service that is not made available on the  
+  # Traefik network.
+    image: pramsey/pg_featureserv:${PGFEATSERV_TAG}
+    container_name: featserv
+    restart: unless-stopped
+    # command: "--config /app/config.toml"
+    depends_on:
+      geo_database:
+        condition: service_healthy
+    networks:
+      - back_end
+    ports:
+      - ${API_PORT}:9000
+    logging: *default-logging
+    environment:
+      # - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database/${DB_NAME}
+      - DATABASE_URL=postgresql://${API_USER}:${API_PW}@geo_database/${DB_NAME}
+      - PGFS_METADATA_TITLE="GeoDatabase Feature Server"
+      - PGFS_METADATA_DESCRIPTION="Feature Server"
+      - PGFS_WEBSITE_BASEMAPURL=https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png
+      - PGFS_PAGING_LIMITDEFAULT=1000
+      - PGFS_PAGING_LIMITMAX=10000
+      - PGFS_SERVER_CORSORIGINS="*"
+      - PGFS_DATABASE_FUNCTIONINCLUDES=postgisftw
+      - PGFS_DATABASE_TABLEINCLUDES=postgisftw
+      - PGFS_SERVER_DEBUG=true
+    # volumes:
+      # - ./config/feat_serv_config.toml:/app/config.toml:ro
+
+
+#===============================
+volumes:
+#=============================== 
+  db_volume:
+  db_shapes:
+
+#===============================
+networks:
+#===============================
+  back_end:
+
+
