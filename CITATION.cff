@@ -4,12 +4,14 @@ authors:
   - given-names: Rory
     family-names: Meyer
     affiliation: GMU
+    orcid: "https://orcid.org/0000-0002-0440-215X"
   - given-names: Taylor M.
     family-names: Anderson
     affiliation: GMU
-title: Automated Environmental GeoDatabase
-abstract: Repository to automate the building and sharing of GIS data using Docker, OGC standards and PostGIS tools.
+    orcid: "https://orcid.org/0000-0003-1145-0608"
+title: "Automated Environmental GeoDatabase"
+abstract: "Repository to automate the building and sharing of GIS data using Docker, OGC standards and PostGIS tools."
 doi: 10.5281/zenodo.13936374
-url: https://github.com/GMU-GeoSciences/environment-geodatabase
+url: "https://github.com/GMU-GeoSciences/environment-geodatabase"
 version: v1.0.1
 date-released: 2024-10-15
